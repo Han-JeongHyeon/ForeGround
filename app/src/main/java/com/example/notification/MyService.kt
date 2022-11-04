@@ -64,14 +64,14 @@ class MyService : Service(), SensorEventListener{
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager!!.createNotificationChannel(channel)
 
-            CoroutineScope(Dispatchers.Default).launch {
-                while (true) {
-                    notificationManager!!.notify(1002, builder!!.build())
-                    delay(1000)
-                    i++
-                    builder!!.setContentText("걸음 : $i")
-                }
-            }
+//            CoroutineScope(Dispatchers.Default).launch {
+//                while (true) {
+//                    notificationManager!!.notify(1002, builder!!.build())
+//                    delay(1000)
+//                    i++
+//                    builder!!.setContentText("걸음 : $i")
+//                }
+//            }
 
         }
 
@@ -81,7 +81,7 @@ class MyService : Service(), SensorEventListener{
         getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
 
-    fun onResume() {
+    private fun onResume() {
         sensorManager.registerListener(
             this,
             sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR),
@@ -93,9 +93,18 @@ class MyService : Service(), SensorEventListener{
     override fun onSensorChanged(event: SensorEvent?) {
         if(event!!.sensor.type == Sensor.TYPE_STEP_DETECTOR){
 
-            notificationManager!!.notify(1002, builder!!.build())
-            i++
-            builder!!.setContentText("걸음 : $i")
+            CoroutineScope(Dispatchers.Default).launch {
+                while (true) {
+                    notificationManager!!.notify(1002, builder!!.build())
+                    delay(1000)
+                    i++
+                    builder!!.setContentText("걸음 : $i")
+                }
+            }
+
+//            notificationManager!!.notify(1002, builder!!.build())
+//            i++
+//            builder!!.setContentText("걸음 : $i")
 
         }
     }
@@ -105,8 +114,11 @@ class MyService : Service(), SensorEventListener{
 
     override fun onDestroy() {
         super.onDestroy()
+        sensorManager.unregisterListener(this)
+//        stopSelf()
         Toast.makeText(baseContext,"onDestroy",Toast.LENGTH_SHORT).show()
     }
+
 
     companion object {
         private const val TAG = "MyServiceTag"
