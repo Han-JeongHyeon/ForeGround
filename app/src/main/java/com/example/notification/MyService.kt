@@ -25,7 +25,6 @@ import kotlinx.coroutines.launch
 class MyService : Service(), SensorEventListener{
 
     override fun onBind(intent: Intent): IBinder? {
-        // TODO: Return the communication channel to the service.
         throw UnsupportedOperationException("Not yet implemented")
     }
 
@@ -37,8 +36,8 @@ class MyService : Service(), SensorEventListener{
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.d(TAG, "onStartCommand")
-        return super.onStartCommand(intent, flags, startId)
+        startService(intent)
+        return START_NOT_STICKY
     }
 
     var notificationManager: NotificationManager? = null
@@ -64,15 +63,6 @@ class MyService : Service(), SensorEventListener{
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager!!.createNotificationChannel(channel)
 
-//            CoroutineScope(Dispatchers.Default).launch {
-//                while (true) {
-//                    notificationManager!!.notify(1002, builder!!.build())
-//                    delay(1000)
-//                    i++
-//                    builder!!.setContentText("걸음 : $i")
-//                }
-//            }
-
         }
 
     }
@@ -84,27 +74,19 @@ class MyService : Service(), SensorEventListener{
     private fun onResume() {
         sensorManager.registerListener(
             this,
-            sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR),
+            sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER),
             SensorManager.SENSOR_DELAY_FASTEST
         )
     }
 
     @SuppressLint("SetTextI18n")
     override fun onSensorChanged(event: SensorEvent?) {
-        if(event!!.sensor.type == Sensor.TYPE_STEP_DETECTOR){
 
-            CoroutineScope(Dispatchers.Default).launch {
-                while (true) {
-                    notificationManager!!.notify(1002, builder!!.build())
-                    delay(1000)
-                    i++
-                    builder!!.setContentText("걸음 : $i")
-                }
-            }
+        if(event!!.sensor.type == Sensor.TYPE_STEP_COUNTER){
 
-//            notificationManager!!.notify(1002, builder!!.build())
-//            i++
-//            builder!!.setContentText("걸음 : $i")
+            notificationManager!!.notify(1002, builder!!.build())
+            i++
+            builder!!.setContentText("걸음 : $i")
 
         }
     }
@@ -114,18 +96,16 @@ class MyService : Service(), SensorEventListener{
 
     override fun onDestroy() {
         super.onDestroy()
-        sensorManager.unregisterListener(this)
-//        stopSelf()
         Toast.makeText(baseContext,"onDestroy",Toast.LENGTH_SHORT).show()
     }
 
+    fun getInt(): Int{
+        return if (i == 0) 0 else i -1
+    }
 
     companion object {
         private const val TAG = "MyServiceTag"
 
         var i = 0
-
-        // Notification
-        private const val NOTI_ID = 1
     }
 }
