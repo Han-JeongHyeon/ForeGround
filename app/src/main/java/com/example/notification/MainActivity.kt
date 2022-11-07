@@ -45,7 +45,6 @@ class MainActivity : AppCompatActivity() {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), 0)
-//                requestPermissions(Manifest.permission.ACTIVITY_RECOGNITION, 0)
             }
         }
 

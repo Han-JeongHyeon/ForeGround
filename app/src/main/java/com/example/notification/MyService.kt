@@ -34,7 +34,6 @@ class MyService : Service(), SensorEventListener{
         super.onCreate()
         createNotification()
         onResume()
-        Log.d(TAG, "onCreate")
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -69,7 +68,6 @@ class MyService : Service(), SensorEventListener{
                 description = descriptionText
             }
 
-            // 만든 채널 정보를 시스템에 등록
             notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager!!.createNotificationChannel(channel)
