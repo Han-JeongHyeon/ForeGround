@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -17,6 +18,7 @@ import android.os.IBinder
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -42,12 +44,21 @@ class MyService : Service(), SensorEventListener{
 
     var notificationManager: NotificationManager? = null
     var builder: NotificationCompat.Builder? = null
+    @SuppressLint("LaunchActivityFromNotification", "ServiceCast")
     private fun createNotification() {
+        val notificationIntent = Intent(baseContext, MainActivity::class.java)
+        notificationIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TASK
+
+        val pendingIntent = PendingIntent
+            .getActivity(baseContext, 0, notificationIntent, FLAG_UPDATE_CURRENT)
+
         builder = NotificationCompat.Builder(this, "MY_channel")
             .setSmallIcon(R.drawable.ic_launcher_background)
             .setContentTitle("만보기 어플")
             .setContentText("걸음 : $i")
             .setOngoing(true)
+            .setContentIntent(pendingIntent)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { // 오레오 버전 이후에는 알림을 받을 때 채널이 필요
             val channel_id = "MY_channel" // 알림을 받을 채널 id 설정
@@ -65,6 +76,7 @@ class MyService : Service(), SensorEventListener{
 
         }
 
+        notificationManager!!.notify(1002, builder!!.build())
     }
 
     private val sensorManager by lazy {
