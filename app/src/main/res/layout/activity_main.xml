@@ -32,7 +32,7 @@
         app:layout_constraintTop_toBottomOf="@+id/title" />
 
     <TextView
-        android:id="@+id/stepCountView"
+        android:id="@+id/stepCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text=" 0"
@@ -43,7 +43,7 @@
         app:layout_constraintTop_toTopOf="@+id/stepCountTag" />
 
     <Button
-        android:id="@+id/btn"
+        android:id="@+id/stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="종료"

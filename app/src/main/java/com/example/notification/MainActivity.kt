@@ -23,22 +23,25 @@ import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
-    var text: TextView? = null
+    var stepCount: TextView? = null
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val btn = findViewById<Button>(R.id.btn)
+        val stop = findViewById<Button>(R.id.stop)
         val start = findViewById<Button>(R.id.start)
-        text = findViewById<TextView>(R.id.stepCountView)
+        stepCount = findViewById<TextView>(R.id.stepCount)
 
-        var br = MyBR()
-        var filter = IntentFilter()
+        val broadcast = MyBroadcastReceiver()
+        val filter = IntentFilter()
 
-        filter.addAction("walk")
-        registerReceiver(br, filter)
+        filter.addAction(getString(R.string.walk))
+
+        registerReceiver(broadcast, filter)
+
+        stepCount!!.text = " ${intent.getIntExtra("value", 0)}"
 
         val intent = Intent(this@MainActivity, MyService::class.java)
 
@@ -50,7 +53,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        btn.setOnClickListener {
+        stop.setOnClickListener {
             stopService(intent)
         }
 
@@ -64,11 +67,11 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    inner class MyBR : BroadcastReceiver()
+    inner class MyBroadcastReceiver : BroadcastReceiver()
     {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if(intent?.action == "test")
-                text!!.text = " ${intent.getIntExtra("value", 0)}"
+            if(intent?.action == "walk")
+                stepCount!!.text = " ${intent.getIntExtra("value", 0)}"
         }
     }
 

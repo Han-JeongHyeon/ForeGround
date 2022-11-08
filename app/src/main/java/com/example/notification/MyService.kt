@@ -36,19 +36,20 @@ class MyService : Service(), SensorEventListener{
     companion object {
         private const val TAG = "MyServiceTag"
 
-        var i = 0
-
-        var text = ""
+        var step = 0
+        var sensor = ""
+        var channelId = 0
     }
 
     private val sensorManager by lazy {
         getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
 
-    var notificationManager: NotificationManager? = null
-    var builder: NotificationCompat.Builder? = null
+    private var notificationManager: NotificationManager? = null
+    private var builder: NotificationCompat.Builder? = null
 
-    var custom: RemoteViews? = null
+    private var customViewSmall: RemoteViews? = null
+    private var customViewBig: RemoteViews? = null
 
     override fun onBind(intent: Intent): IBinder? {
         throw UnsupportedOperationException("Not yet implemented")
@@ -56,17 +57,18 @@ class MyService : Service(), SensorEventListener{
 
     override fun onCreate() {
         super.onCreate()
-
         createNotification()
         onResume()
 
-        text = "측정 가능"
+        sensor = "측정 가능"
+        if (step != 0) step--
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         return START_STICKY
     }
 
+    @SuppressLint("RemoteViewLayout")
     private fun createNotification() {
         val notificationIntent = Intent(applicationContext, MainActivity::class.java)
         notificationIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -75,31 +77,31 @@ class MyService : Service(), SensorEventListener{
         val pendingIntent = PendingIntent
             .getActivity(applicationContext, 0, notificationIntent, PendingIntent.FLAG_MUTABLE)
 
-        custom = RemoteViews(packageName, R.layout.custom_small)
+        customViewSmall = RemoteViews(packageName, R.layout.custom_small)
+        customViewBig = RemoteViews(packageName, R.layout.custom_big)
 
         builder = NotificationCompat.Builder(this, "MY_channel")
             .setSmallIcon(R.drawable.ic_launcher_background)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
-            .setContent(custom)
+            .setCustomContentView(customViewSmall)
+            .setCustomBigContentView(customViewBig)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel_id = "MY_channel"
-            val channel_name = "채널이름"
-            val descriptionText = "설명글"
+            val channelId = "MY_channel"
+            val channelName = "만보기"
+            val descriptionText = "만보기 앱입니다."
             val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(channel_id, channel_name, importance).apply {
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
                 description = descriptionText
             }
 
             notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager!!.createNotificationChannel(channel)
-
         }
 
-        startForeground(1002, builder!!.build())
-
+        startForeground(channelId, builder!!.build())
     }
 
     private fun onResume() {
@@ -113,16 +115,20 @@ class MyService : Service(), SensorEventListener{
     @SuppressLint("SetTextI18n")
     override fun onSensorChanged(event: SensorEvent?) {
         if(event!!.sensor.type == Sensor.TYPE_STEP_COUNTER &&
-            text != "측정 불가"){
+            sensor != "측정 불가"){
 
             val intent = Intent()
 
-            custom!!.setTextViewText(R.id.walk,"총 걸음 수 : $i")
-            i++
-            notificationManager!!.notify(1002, builder!!.build())
+            customViewSmall!!.setTextViewText(R.id.walk,"걸음 수 : $step")
+            customViewBig!!.setTextViewText(R.id.walk,"걸음 수 : $step")
 
-            intent.action = "walk"
-            intent.putExtra("value", if (i == 0) 0 else i -1)
+            step++
+
+            notificationManager!!.notify(channelId, builder!!.build())
+
+            intent.action = getString(R.string.walk)
+            intent.putExtra("value", if (step == 0) 0 else step - 1)
+
             sendBroadcast(intent)
         }
     }
@@ -133,8 +139,11 @@ class MyService : Service(), SensorEventListener{
     override fun onDestroy() {
         super.onDestroy()
 
-        text = "측정 불가"
-        custom!!.setTextViewText(R.id.walk,"측정 시작을 눌러주세요")
-        notificationManager!!.notify(1002, builder!!.build())
+        sensor = "측정 불가"
+
+        customViewSmall!!.setTextViewText(R.id.walk,"측정 시작을 눌러주세요")
+        customViewBig!!.setTextViewText(R.id.walk,"측정 시작을 눌러주세요")
+
+        notificationManager!!.notify(channelId, builder!!.build())
     }
 }
