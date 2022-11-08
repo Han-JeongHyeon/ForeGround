@@ -2,8 +2,10 @@ package com.example.notification
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -21,23 +23,35 @@ import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
-    @RequiresApi(Build.VERSION_CODES.Q)
+    var text: TextView? = null
+
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         val btn = findViewById<Button>(R.id.btn)
+        val start = findViewById<Button>(R.id.start)
+        text = findViewById<TextView>(R.id.stepCountView)
 
-        val text = findViewById<TextView>(R.id.stepCountView)
+        var br = MyBR()
+        var filter = IntentFilter()
+
+        filter.addAction("walk")
+        registerReceiver(br, filter)
 
         val intent = Intent(this@MainActivity, MyService::class.java)
-        startService(intent)
 
-        text.text = " ${(MyService().getInt())}"
+        start.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        }
 
         btn.setOnClickListener {
-            text.text = " ${(MyService().getInt())}"
+            stopService(intent)
         }
 
         if(ContextCompat.checkSelfPermission(this,
@@ -48,6 +62,48 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    }
+
+    inner class MyBR : BroadcastReceiver()
+    {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if(intent?.action == "test")
+                text!!.text = " ${intent.getIntExtra("value", 0)}"
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when(requestCode){
+            0 -> {
+                if (grantResults.isNotEmpty()){
+                    var isAllGranted = true
+                    for (grant in grantResults) {
+                        if (grant != PackageManager.PERMISSION_GRANTED) {
+                            isAllGranted = false
+                            break
+                        }
+                    }
+
+                    if (isAllGranted) {
+
+                    }
+                    else {
+                        if(!ActivityCompat.shouldShowRequestPermissionRationale(this,
+                                Manifest.permission.ACTIVITY_RECOGNITION)){
+                            //팝업 띄어서 권한 설정하기
+                        } else {
+
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }

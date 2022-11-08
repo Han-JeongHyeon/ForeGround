@@ -16,10 +16,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Notification"
         tools:targetApi="31">
-        <activity
-            android:name=".SubActivity"
-            android:exported="false" />
-
         <service
             android:name=".MyService"
             android:enabled="true"
@@ -34,6 +30,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713"/>
     </application>
 
 </manifest>
