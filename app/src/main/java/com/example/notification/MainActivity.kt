@@ -25,10 +25,25 @@ class MainActivity : AppCompatActivity() {
 
     var stepCount: TextView? = null
 
+    private var stepCounter: StepCount? = null
+    private var sensorManager: SensorManager? = null
+    private var accelerometer: Sensor? = null
+
+    private var steps = 0
+
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+//        sensorManager.registerListener(
+//            this,
+//            sensorManager!!.getDefaultSensor(Sensor.TYPE_STEP_COUNTER),
+//            SensorManager.SENSOR_DELAY_FASTEST
+//        )
+
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        accelerometer = sensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
         val stop = findViewById<Button>(R.id.stop)
         val start = findViewById<Button>(R.id.start)
@@ -56,6 +71,19 @@ class MainActivity : AppCompatActivity() {
         stop.setOnClickListener {
             stopService(intent)
         }
+
+        stepCounter = StepCount(object : StepCount.StepDetector {
+            @SuppressLint("SetTextI18n")
+            override fun onStepDetected() {
+                steps++
+                Log.d("TAG", "$steps")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(intent)
+                } else {
+                    startService(intent)
+                }
+            }
+        })
 
         if(ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_DENIED){
