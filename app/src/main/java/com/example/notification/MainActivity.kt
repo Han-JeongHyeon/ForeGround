@@ -16,45 +16,50 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.notification.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
 
-    var stepCount: TextView? = null
+    private var stepCount: StepCount? = null
+    private var sensorManager: SensorManager? = null
+    private var sensor: Sensor? = null
+
+    var steps = 0
+
+    var sensorOn = false
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        val stop = findViewById<Button>(R.id.stop)
-        val start = findViewById<Button>(R.id.start)
-        stepCount = findViewById<TextView>(R.id.stepCount)
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        sensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
 
-        val broadcast = MyBroadcastReceiver()
-        val filter = IntentFilter()
-
-        filter.addAction(getString(R.string.walk))
-
-        registerReceiver(broadcast, filter)
-
-        stepCount!!.text = " ${intent.getIntExtra("value", 0)}"
-
-        val intent = Intent(this@MainActivity, MyService::class.java)
-
-        start.setOnClickListener {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
+        stepCount = StepCount(object: StepCount.StepCounter{
+            override fun stepCount() {
+                steps++
+                binding.stepCount.text = "$steps"
+                startForegroundService(steps)
             }
-        }
+        })
 
-        stop.setOnClickListener {
-            stopService(intent)
+        binding.start.setOnClickListener {
+            sensorOn = !sensorOn
+            if (sensorOn) {
+                binding.start.text = "측정 가능"
+                startForegroundService(steps)
+            } else {
+                binding.start.text = "측정 중지"
+                stopForegroundService()
+            }
         }
 
         if(ContextCompat.checkSelfPermission(this,
@@ -67,12 +72,23 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    inner class MyBroadcastReceiver : BroadcastReceiver()
-    {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if(intent?.action == getString(R.string.walk))
-                stepCount!!.text = " ${intent.getIntExtra("value", 0)}"
+    private fun startForegroundService(steps: Int) {
+        val serviceIntent = Intent(this@MainActivity, MyService::class.java)
+
+        sensorManager!!.registerListener(stepCount, sensor, SensorManager.SENSOR_DELAY_FASTEST)
+        serviceIntent.putExtra("steps", steps)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
         }
+    }
+
+    private fun stopForegroundService(){
+        val serviceIntent = Intent(this@MainActivity, MyService::class.java)
+
+        sensorManager!!.unregisterListener(stepCount)
+        stopService(serviceIntent)
     }
 
     override fun onRequestPermissionsResult(

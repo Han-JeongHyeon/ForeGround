@@ -1,55 +1,20 @@
 package com.example.notification
 
-import android.annotation.SuppressLint
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.PendingIntent.FLAG_UPDATE_CURRENT
-import android.app.Service
+import android.app.*
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
-import android.graphics.Color
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import android.widget.RemoteViews
-import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
-/*
-* 서비스 종료 함수 만들기
-* notification 꾸미기
-* */
+class MyService : Service(){
 
-class MyService : Service(), SensorEventListener{
-
-    companion object {
-        private const val TAG = "MyServiceTag"
-
-        var step = 0
-        var sensor = ""
-        var channelId = 0
-    }
-
-    private val sensorManager by lazy {
-        getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    }
-
-    private var notificationManager: NotificationManager? = null
-    private var builder: NotificationCompat.Builder? = null
+    private var steps = 0
 
     private var customViewSmall: RemoteViews? = null
-    private var customViewBig: RemoteViews? = null
+
+    private var pendingIntent: PendingIntent? = null
 
     override fun onBind(intent: Intent): IBinder? {
         throw UnsupportedOperationException("Not yet implemented")
@@ -57,93 +22,56 @@ class MyService : Service(), SensorEventListener{
 
     override fun onCreate() {
         super.onCreate()
-        createNotification()
-        onResume()
+        createNotificationChannel()
+        getPendingIntent()
 
-        sensor = "측정 가능"
-        if (step != 0) step--
     }
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        return START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        steps = intent!!.getIntExtra("steps", 0)
+
+        customViewSmall = RemoteViews(packageName, R.layout.custom_small)
+
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.sneaker_element)
+            .setCustomContentView(customViewSmall)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        val notification: Notification = builder.build()
+
+        customViewSmall!!.setTextViewText(R.id.walk,"걸음 수 : $steps")
+
+        startForeground(notificationId, notification)
+
+        return super.onStartCommand(intent, flags, startId)
     }
 
-    @SuppressLint("RemoteViewLayout")
-    private fun createNotification() {
+    private fun getPendingIntent(){
         val notificationIntent = Intent(applicationContext, MainActivity::class.java)
         notificationIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_CLEAR_TASK
 
-        val pendingIntent = PendingIntent
+        pendingIntent = PendingIntent
             .getActivity(applicationContext, 0, notificationIntent, PendingIntent.FLAG_MUTABLE)
+    }
 
-        customViewSmall = RemoteViews(packageName, R.layout.custom_small)
-        customViewBig = RemoteViews(packageName, R.layout.custom_big)
-
-        builder = NotificationCompat.Builder(this, "MY_channel")
-            .setSmallIcon(R.drawable.ic_launcher_background)
-            .setOngoing(true)
-            .setContentIntent(pendingIntent)
-            .setCustomContentView(customViewSmall)
-            .setCustomBigContentView(customViewBig)
-
+    private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelId = "MY_channel"
             val channelName = "만보기"
             val descriptionText = "만보기 앱입니다."
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(channelId, channelName, importance).apply {
+            val importance = NotificationManager.IMPORTANCE_LOW
+
+            val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {
                 description = descriptionText
             }
 
-            notificationManager =
+            val notificationManager: NotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager!!.createNotificationChannel(channel)
+
+            notificationManager.createNotificationChannel(channel)
         }
 
-        startForeground(channelId, builder!!.build())
     }
 
-    private fun onResume() {
-        sensorManager.registerListener(
-            this,
-            sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER),
-            SensorManager.SENSOR_DELAY_FASTEST
-        )
-    }
-
-    @SuppressLint("SetTextI18n")
-    override fun onSensorChanged(event: SensorEvent?) {
-        if(event!!.sensor.type == Sensor.TYPE_STEP_COUNTER &&
-            sensor != "측정 불가"){
-
-            val intent = Intent()
-
-            customViewSmall!!.setTextViewText(R.id.walk,"걸음 수 : $step")
-            customViewBig!!.setTextViewText(R.id.walk,"걸음 수 : $step")
-
-            step++
-
-            notificationManager!!.notify(channelId, builder!!.build())
-
-            intent.action = getString(R.string.walk)
-            intent.putExtra("value", if (step == 0) 0 else step - 1)
-
-            sendBroadcast(intent)
-        }
-    }
-
-    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-
-        sensor = "측정 불가"
-
-        customViewSmall!!.setTextViewText(R.id.walk,"측정 시작을 눌러주세요")
-        customViewBig!!.setTextViewText(R.id.walk,"측정 시작을 눌러주세요")
-
-        notificationManager!!.notify(channelId, builder!!.build())
-    }
 }
