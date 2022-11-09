@@ -2,22 +2,13 @@ package com.example.notification
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -26,7 +17,7 @@ import com.example.notification.databinding.ActivityMainBinding
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
-    private var stepCount: StepCount? = null
+    private var stepCounter: StepCounter? = null
     private var sensorManager: SensorManager? = null
     private var sensor: Sensor? = null
 
@@ -43,7 +34,7 @@ class MainActivity : AppCompatActivity() {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
 
-        stepCount = StepCount(object: StepCount.StepCounter{
+        stepCounter = StepCounter(object: StepCounter.StepCounter{
             override fun stepCount() {
                 steps++
                 binding.stepCount.text = "$steps"
@@ -75,7 +66,7 @@ class MainActivity : AppCompatActivity() {
     private fun startForegroundService(steps: Int) {
         val serviceIntent = Intent(this@MainActivity, MyService::class.java)
 
-        sensorManager!!.registerListener(stepCount, sensor, SensorManager.SENSOR_DELAY_FASTEST)
+        sensorManager!!.registerListener(stepCounter, sensor, SensorManager.SENSOR_DELAY_FASTEST)
         serviceIntent.putExtra("steps", steps)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
@@ -87,7 +78,7 @@ class MainActivity : AppCompatActivity() {
     private fun stopForegroundService(){
         val serviceIntent = Intent(this@MainActivity, MyService::class.java)
 
-        sensorManager!!.unregisterListener(stepCount)
+        sensorManager!!.unregisterListener(stepCounter)
         stopService(serviceIntent)
     }
 
